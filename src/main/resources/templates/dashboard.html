@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>LogicBro - Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <h2>LogicBro</h2>
+        <nav>
+            <a th:href="@{/dashboard}">Dashboard</a>
+            <a th:href="@{/upload}">Upload Audio</a>
+            <a th:href="@{/logout}">Logout</a>
+        </nav>
+    </div>
+    <div class="main-content">
+        <h1>Welcome, <span th:text="${username}"></span>!</h1>
+        <h2>Your Projects</h2>
+        <div class="project-list">
+            <div th:each="project : ${projects}" class="project-card">
+                <h3 th:text="${project.projectName}"></h3>
+                <p th:text="'Created: ' + ${project.createdAt}"></p>
+            </div>
+            <div th:if="${#lists.isEmpty(projects)}">
+                <p>No projects yet. Start by uploading an audio file!</p>
+            </div>
+        </div>
+        <a th:href="@{/upload}" class="btn">Upload New Audio</a>
+    </div>
+</body>
+</html>

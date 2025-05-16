@@ -1,6 +1,6 @@
 package com.example.LogicBro.controller;
 
-import com.example.LogicBro.entity.Project;
+//import com.example.LogicBro.entity.Project;
 import com.example.LogicBro.repository.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;

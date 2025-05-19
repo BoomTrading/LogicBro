@@ -6,17 +6,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import com.example.LogicBro.service.AudioStorageService;
 
 @Controller
 public class FileUploadController {
 
-    private final String uploadDir = "uploads";
+    private final AudioStorageService audioStorageService;
+
+    public FileUploadController(AudioStorageService audioStorageService) {
+        this.audioStorageService = audioStorageService;
+    }
 
     @GetMapping("/upload")
     public String showUploadForm() {
@@ -27,20 +26,10 @@ public class FileUploadController {
     public String handleFileUpload(@RequestParam("file") MultipartFile file,
                                  RedirectAttributes redirectAttributes) {
         try {
-            // Create uploads directory if it doesn't exist
-            File directory = new File(uploadDir);
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-
-            // Save the file
-            Path path = Paths.get(uploadDir + File.separator + file.getOriginalFilename());
-            Files.write(path, file.getBytes());
-
-            redirectAttributes.addFlashAttribute("message", "File uploaded successfully!");
+            String filename = audioStorageService.storeAudio(file);
+            redirectAttributes.addFlashAttribute("message", "File " + filename + " uploaded successfully!");
             return "redirect:/upload";
-            
-        } catch (IOException e) {
+        } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Failed to upload file: " + e.getMessage());
             return "redirect:/upload";
         }

@@ -14,6 +14,11 @@ public class AuthController {
     @Autowired
     private UserService userService;
 
+    @GetMapping("/")
+    public String root() {
+        return "redirect:/login";
+    }
+
     @GetMapping("/login")
     public String loginPage(Model model) {
         return "login";

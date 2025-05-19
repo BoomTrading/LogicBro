@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>LogicBro - Upload</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <h2>LogicBro</h2>
+        <nav>
+            <a th:href="@{/dashboard}">Dashboard</a>
+            <a th:href="@{/upload}">Upload Audio</a>
+            <a th:href="@{/logout}">Logout</a>
+        </nav>
+    </div>
+    <div class="main-content">
+        <div class="upload-container">
+            <h2>Upload MP3 File</h2>
+            <form th:action="@{/upload}" method="post" enctype="multipart/form-data">
+                <input type="file" name="file" accept=".mp3" required>
+                <button type="submit" class="upload-btn">Upload</button>
+            </form>
+            <div th:if="${message}" class="message" th:text="${message}"></div>
+            <div th:if="${error}" class="error" th:text="${error}"></div>
+        </div>
+    </div>
+</body>
+</html>

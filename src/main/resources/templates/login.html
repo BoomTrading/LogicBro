@@ -2,27 +2,70 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LogicBro - Login</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
-<body>
-    <div class="container">
-        <h1>LogicBro</h1>
-        <form th:action="@{/login}" method="post">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo-large">
+                    <i class="mdi mdi-music-note"></i>
+                    <span>LogicBro</span>
+                </div>
+                <h1>Welcome Back</h1>
+                <p class="text-secondary">Sign in to your account to continue</p>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
+
+            <form th:action="@{/login}" method="post" class="auth-form">
+                <div class="form-group">
+                    <label for="username" class="form-label">
+                        <i class="mdi mdi-account"></i>
+                        Username
+                    </label>
+                    <input type="text" 
+                           id="username" 
+                           name="username" 
+                           class="form-control" 
+                           placeholder="Enter your username"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        <i class="mdi mdi-lock"></i>
+                        Password
+                    </label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           class="form-control" 
+                           placeholder="Enter your password"
+                           required>
+                </div>
+
+                <div th:if="${param.error}" class="alert alert-error mb-3">
+                    <i class="mdi mdi-alert-circle"></i>
+                    Invalid username or password.
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-full">
+                    <i class="mdi mdi-login"></i>
+                    Sign In
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Don't have an account? <a th:href="@{/register}" class="link">Create one here</a></p>
             </div>
-            <button type="submit">Login</button>
-        </form>
-        <p><a th:href="@{/register}">Create an account</a></p>
-        <div th:if="${param.error}" class="error">
-            Invalid username or password.
         </div>
     </div>
+
+    <script th:src="@{/js/common.js}"></script>
 </body>
 </html>

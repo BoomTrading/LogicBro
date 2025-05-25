@@ -2,29 +2,104 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>LogicBro - Register</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogicBro - Create Account</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
-<body>
-    <div class="container">
-        <h1>LogicBro</h1>
-        <form th:action="@{/register}" method="post">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo-large">
+                    <i class="mdi mdi-music-note"></i>
+                    <span>LogicBro</span>
+                </div>
+                <h1>Create Account</h1>
+                <p class="text-secondary">Join LogicBro to start analyzing your music</p>
             </div>
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
+
+            <form th:action="@{/register}" method="post" class="auth-form" id="registerForm">
+                <div class="form-group">
+                    <label for="username" class="form-label">
+                        <i class="mdi mdi-account"></i>
+                        Username
+                    </label>
+                    <input type="text" 
+                           id="username" 
+                           name="username" 
+                           class="form-control" 
+                           placeholder="Choose a username"
+                           required>
+                    <div class="form-help">Must be at least 3 characters long</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">
+                        <i class="mdi mdi-email"></i>
+                        Email Address
+                    </label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           class="form-control" 
+                           placeholder="Enter your email address"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        <i class="mdi mdi-lock"></i>
+                        Password
+                    </label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           class="form-control" 
+                           placeholder="Create a secure password"
+                           required>
+                    <div class="form-help">Must be at least 8 characters long</div>
+                </div>
+
+                <div th:if="${error}" class="alert alert-error mb-3">
+                    <i class="mdi mdi-alert-circle"></i>
+                    <span th:text="${error}"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-full">
+                    <i class="mdi mdi-account-plus"></i>
+                    Create Account
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a th:href="@{/login}" class="link">Sign in here</a></p>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <button type="submit">Register</button>
-        </form>
-        <p><a th:href="@{/login}">Already have an account? Login</a></p>
-        <div th:if="${error}" class="error" th:text="${error}"></div>
+        </div>
     </div>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script>
+        // Enhanced form validation
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username.length < 3) {
+                e.preventDefault();
+                showToast('Username must be at least 3 characters long', 'error');
+                return;
+            }
+            
+            if (password.length < 8) {
+                e.preventDefault();
+                showToast('Password must be at least 8 characters long', 'error');
+                return;
+            }
+        });
+    </script>
 </body>
 </html>

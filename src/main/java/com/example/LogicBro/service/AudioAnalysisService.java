@@ -6,114 +6,130 @@ import be.tarsos.dsp.pitch.PitchDetectionHandler;
 import be.tarsos.dsp.pitch.PitchProcessor;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.cache.annotation.Cacheable;
 import org.jfugue.pattern.Pattern;
 import org.jfugue.theory.Chord;
-import org.jfugue.theory.Note;
-import org.jfugue.theory.Scale;
 import com.example.LogicBro.dto.AudioAnalysisDTO;
-import com.example.LogicBro.model.AudioAnalysis;
+import com.example.LogicBro.entity.AudioFile;
+import com.example.LogicBro.entity.User;
+import com.example.LogicBro.repository.AudioFileRepository;
+import com.example.LogicBro.repository.UserRepository;
+import com.example.LogicBro.util.AudioAnalysisUtil;
 import lombok.RequiredArgsConstructor;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
 public class AudioAnalysisService {
     
-    private static final float SAMPLE_RATE = 44100;
-    private static final int BUFFER_SIZE = 2048;
-    private static final int OVERLAP = 1024;
+    private final AudioStorageService storageService;
+    private final AudioFileRepository audioFileRepository;
+    private final UserRepository userRepository;
+    private final AudioAnalysisUtil analysisUtil;
+
+    public String storeAudioFile(MultipartFile file, String username) {
+        String fileId = UUID.randomUUID().toString();
+        String filePath = storageService.storeAudio(file);
+        
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+        
+        AudioFile audioFile = new AudioFile();
+        audioFile.setFileId(fileId);  // Set the fileId that we return
+        audioFile.setFilePath(filePath);
+        audioFile.setFileName(file.getOriginalFilename());
+        audioFile.setOriginalFileName(file.getOriginalFilename());
+        audioFile.setFileType(file.getContentType());
+        audioFile.setFileSize(file.getSize());
+        audioFile.setUser(user);
+        
+        audioFileRepository.save(audioFile);
+        return fileId;
+    }
 
     @Async
-    public CompletableFuture<AudioAnalysisDTO> analyzeAudioFile(String filePath) {
-        AudioAnalysisDTO analysis = new AudioAnalysisDTO();
-        try {
-            File audioFile = new File(filePath);
-            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(audioFile);
+    public CompletableFuture<AudioAnalysisDTO> analyzeAudioFile(String fileId) {
+        AudioFile audioFile = audioFileRepository.findByFileId(fileId)
+            .orElseThrow(() -> new IllegalArgumentException("File not found"));
             
-            // Configure TarsosDSP for pitch detection
-            AudioDispatcher dispatcher = new AudioDispatcher(
-                new JVMAudioInputStream(audioInputStream),
-                BUFFER_SIZE,
-                OVERLAP
-            );
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                File file = new File(audioFile.getFilePath());
+                List<Float> pitches = analysisUtil.extractPitches(file);
+                double tempo = analysisUtil.detectTempo(file);
+                String key = analysisUtil.determineKey(pitches);
+                String scale = analysisUtil.determineScale(pitches, key);
+                List<String> chords = analysisUtil.detectChordProgression(pitches, key, scale);
+                List<String> instruments = analysisUtil.separateInstruments(file);
+                
+                AudioAnalysisDTO analysis = new AudioAnalysisDTO();
+                analysis.setFileName(audioFile.getFileName());
+                analysis.setKey(key);
+                analysis.setScale(scale);
+                analysis.setChordProgression(chords);
+                analysis.setTempo(tempo);
+                analysis.setDominantInstruments(instruments);
+                
+                return analysis;
+            } catch (Exception e) {
+                throw new RuntimeException("Error analyzing audio file", e);
+            }
+        });
+    }
 
-            List<Float> pitches = new ArrayList<>();
-            dispatcher.addAudioProcessor(new PitchProcessor(
-                PitchProcessor.PitchEstimationAlgorithm.YIN,
-                SAMPLE_RATE,
-                BUFFER_SIZE,
-                (PitchDetectionHandler) (result, event) -> {
-                    if (result.getPitch() != -1) {
-                        pitches.add(result.getPitch());
+    @Async
+    @Cacheable(value = "variations", key = "#chordProgression + #scale + #variationAmount")
+    public CompletableFuture<AudioAnalysisDTO> generateVariation(String[] chordProgression, String scale, double variationAmount) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Pattern pattern = new Pattern();
+                pattern.add("T120"); // Set tempo
+                
+                List<String> variations = new ArrayList<>();
+                
+                // Create variations based on amount
+                if (variationAmount < 0.33) {
+                    // Subtle variations
+                    for (String chord : chordProgression) {
+                        variations.add(chord);
+                        if (Math.random() < 0.2) { // 20% chance for passing tone
+                            variations.add("Rq"); // Quarter note rest
+                        }
+                    }
+                } else if (variationAmount < 0.66) {
+                    // Moderate variations
+                    for (String chord : chordProgression) {
+                        if (Math.random() < 0.3) { // 30% chance for variation
+                            // Add a related chord (simplified)
+                            variations.add(chord + "maj"); // Add major variant
+                        } else {
+                            variations.add(chord);
+                        }
+                    }
+                } else {
+                    // Major variations
+                    String[] progression = {"I", "IV", "V", "vi"}; // Example progression
+                    for (int i = 0; i < chordProgression.length; i++) {
+                        variations.add(progression[i % progression.length]);
                     }
                 }
-            ));
-
-            // Process the audio
-            dispatcher.run();
-
-            // Analyze collected pitches to determine key and scale
-            String key = determineKey(pitches);
-            String scale = determineScale(pitches);
-            List<String> chords = determineChordProgression(pitches);
-
-            analysis.setFileName(audioFile.getName());
-            analysis.setKey(key);
-            analysis.setScale(scale);
-            analysis.setChordProgression(chords);
-
-            return CompletableFuture.completedFuture(analysis);
-        } catch (Exception e) {
-            return CompletableFuture.failedFuture(e);
-        }
-    }
-
-    private String determineKey(List<Float> pitches) {
-        // Implement key detection logic using pitch frequency analysis
-        // This is a placeholder - actual implementation would be more complex
-        return "C";
-    }
-
-    private String determineScale(List<Float> pitches) {
-        // Implement scale detection logic
-        // This is a placeholder - actual implementation would be more complex
-        return "Major";
-    }
-
-    private List<String> determineChordProgression(List<Float> pitches) {
-        // Implement chord progression detection logic
-        // This is a placeholder - actual implementation would be more complex
-        List<String> chords = new ArrayList<>();
-        chords.add("C");
-        chords.add("G");
-        chords.add("Am");
-        chords.add("F");
-        return chords;
-    }
-
-    @Async
-    public CompletableFuture<Pattern> generateVariation(String chordProgression, String scale, double variationAmount) {
-        // Create a new pattern based on the original chord progression
-        Pattern variation = new Pattern();
-        
-        // Use JFugue to create variations
-        Scale scaleObj = new Scale(scale);
-        String[] chords = chordProgression.split(" ");
-        
-        for (String chord : chords) {
-            Chord c = new Chord(chord);
-            // Add variations based on the scale
-            Note[] notes = c.getNotes();
-            // Add modified notes to the variation pattern
-            // This is a simplified version - actual implementation would be more complex
-            variation.add(chord);
-        }
-        
-        return CompletableFuture.completedFuture(variation);
+                
+                AudioAnalysisDTO result = new AudioAnalysisDTO();
+                result.setChordProgression(variations);
+                result.setScale(scale);
+                
+                return result;
+            } catch (Exception e) {
+                throw new RuntimeException("Error generating variation", e);
+            }
+        });
     }
 }

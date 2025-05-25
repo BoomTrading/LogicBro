@@ -1,7 +1,6 @@
 package com.example.LogicBro.service;
 
 import org.jfugue.pattern.Pattern;
-import org.jfugue.player.Player;
 import org.jfugue.theory.Chord;
 import org.jfugue.theory.ChordProgression;
 import org.jfugue.theory.Note;
@@ -11,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 
 import java.util.List;
-import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -30,8 +28,8 @@ public class ModularSoundService {
         ChordProgression progression = new ChordProgression(baseChord);
         Pattern pattern = new Pattern();
         
-        // Set tempo
-        pattern.setTempo(tempo);
+        // Set tempo (convert double to int)
+        pattern.setTempo((int)tempo);
         
         // Generate base pattern
         for (String instrument : instruments) {
@@ -58,16 +56,17 @@ public class ModularSoundService {
         
         // Add variations based on complexity
         for (Chord chord : progression.getChords()) {
-            Note[] notes = chord.getNotes();
-            
             // Add base chord
             pattern.add(chord.toString());
             
             // Add melodic variations based on complexity
             if (complexity > 1) {
-                for (Note note : scale.getNotes()) {
-                    if (chord.contains(note)) {
-                        pattern.add(note.toString());
+                // For JFugue 5, we'll work with music strings directly
+                String[] scaleNotes = scale.toString().split(" ");
+                String chordStr = chord.toString();
+                for (String noteStr : scaleNotes) {
+                    if (chordStr.contains(noteStr)) {
+                        pattern.add(noteStr);
                     }
                 }
             }
@@ -88,27 +87,36 @@ public class ModularSoundService {
             int voiceCount) {
         
         Pattern harmony = new Pattern();
-        Scale scaleObj = new Scale(scale);
         
         // Generate accompanying voices
         for (int i = 0; i < voiceCount; i++) {
-            Pattern voice = generateHarmonicVoice(melody, scaleObj, i);
+            Pattern voice = new Pattern();
+            int interval = (i + 1) * 2; // Generate harmonies at different intervals
+            
+            // Add notes from the melody at different intervals
+            String melodyStr = melody.toString();
+            String[] melodyTokens = melodyStr.split(" ");
+            for (String token : melodyTokens) {
+                try {
+                    // Try to parse and transpose the note
+                    Note note = new Note(token);
+                    String noteStr = note.toString();
+                    // Simple octave shift for harmony
+                    if (noteStr.matches(".*\\d+.*")) {
+                        int octave = Integer.parseInt(noteStr.replaceAll("\\D+", ""));
+                        String notePart = noteStr.replaceAll("\\d+", "");
+                        voice.add(notePart + (octave + interval/12));
+                    } else {
+                        voice.add(noteStr);
+                    }
+                } catch (Exception e) {
+                    // If not a note, add as is
+                    voice.add(token);
+                }
+            }
             harmony.add(voice);
         }
         
         return CompletableFuture.completedFuture(harmony);
-    }
-    
-    private Pattern generateHarmonicVoice(Pattern melody, Scale scale, int voiceIndex) {
-        Pattern voice = new Pattern();
-        int interval = (voiceIndex + 1) * 2; // Generate harmonies at different intervals
-        
-        // Add notes from the scale at the calculated interval
-        Note[] scaleNotes = scale.getNotes();
-        for (Note note : scaleNotes) {
-            voice.add(note.transpose(interval).toString());
-        }
-        
-        return voice;
     }
 }

@@ -14,7 +14,7 @@ public class AnalysisResult {
     private Long resultId;
 
     @OneToOne
-    @JoinColumn(name = "file_id", nullable = false)
+    @JoinColumn(name = "audio_file_id", nullable = false)
     private AudioFile audioFile;
 
     @Column(name = "chord_progression", length = 1000)

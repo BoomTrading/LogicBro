@@ -5,12 +5,9 @@ import be.tarsos.dsp.AudioEvent;
 import be.tarsos.dsp.AudioProcessor;
 import be.tarsos.dsp.io.jvm.AudioDispatcherFactory;
 import be.tarsos.dsp.pitch.PitchDetectionHandler;
-import be.tarsos.dsp.pitch.PitchDetectionResult;
 import be.tarsos.dsp.pitch.PitchProcessor;
 import org.springframework.stereotype.Component;
 
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.File;
 import java.io.IOException;
@@ -25,8 +22,6 @@ public class AudioAnalysisUtil {
 
     public List<Float> extractPitches(File audioFile) throws UnsupportedAudioFileException, IOException {
         List<Float> pitches = new ArrayList<>();
-        
-        AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioFile);
         AudioDispatcher dispatcher = AudioDispatcherFactory.fromFile(audioFile, BUFFER_SIZE, OVERLAP);
         
         dispatcher.addAudioProcessor(new PitchProcessor(

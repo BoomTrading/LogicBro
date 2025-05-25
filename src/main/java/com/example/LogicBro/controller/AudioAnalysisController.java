@@ -21,13 +21,5 @@ public class AudioAnalysisController {
             .exceptionally(e -> ResponseEntity.internalServerError().build());
     }
     
-    @PostMapping("/generate-variation")
-    public CompletableFuture<ResponseEntity<String>> generateVariation(
-            @RequestParam String chordProgression,
-            @RequestParam String scale,
-            @RequestParam(defaultValue = "0.5") double variationAmount) {
-        return audioAnalysisService.generateVariation(chordProgression, scale, variationAmount)
-            .thenApply(pattern -> ResponseEntity.ok(pattern.toString()))
-            .exceptionally(e -> ResponseEntity.internalServerError().build());
-    }
+    // Variation generation endpoint moved to DashboardController to avoid conflicts
 }

@@ -10,8 +10,10 @@ import java.time.LocalDateTime;
 public class AudioFile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "file_id")
-    private Long fileId;
+    private Long id;
+
+    @Column(name = "file_id", unique = true)
+    private String fileId;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
@@ -56,6 +58,9 @@ public class AudioFile {
 
     @OneToOne(mappedBy = "audioFile", cascade = CascadeType.ALL)
     private AnalysisResult analysisResult;
+
+    @OneToOne(mappedBy = "audioFile", cascade = CascadeType.ALL)
+    private AudioAnalysis audioAnalysis;
 
     @PrePersist
     protected void onCreate() {

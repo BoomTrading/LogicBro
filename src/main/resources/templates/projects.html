@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects - LogicBro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/dashboard">
+                <i class="fas fa-music me-2"></i>LogicBro
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/projects">
+                            <i class="fas fa-folder me-1"></i>Projects
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>Account
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-1"></i>Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-1"></i>Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="h2 mb-1">My Projects</h1>
+                            <p class="text-muted">Manage your audio analysis projects</p>
+                        </div>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createProjectModal">
+                            <i class="fas fa-plus me-1"></i>New Project
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projects Grid -->
+            <div class="row g-4" id="projectsGrid">
+                <!-- Sample Projects (will be replaced with dynamic content) -->
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card project-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title mb-0">Demo Project</h5>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-1"></i>Edit</a></li>
+                                        <li><a class="dropdown-item" href="#"><i class="fas fa-share me-1"></i>Share</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-1"></i>Delete</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <p class="card-text text-muted">Sample project for demonstration purposes</p>
+                            <div class="project-stats mb-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-file-audio me-1"></i>3 files
+                                    <i class="fas fa-clock ms-2 me-1"></i>2 days ago
+                                </small>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="/projects/demo" class="btn btn-primary btn-sm flex-fill">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </a>
+                                <button class="btn btn-outline-primary btn-sm" title="Analyze">
+                                    <i class="fas fa-chart-line"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State (shown when no projects) -->
+                <div class="col-12" id="emptyState" style="display: none;">
+                    <div class="text-center py-5">
+                        <i class="fas fa-folder-open text-muted mb-3" style="font-size: 4rem;"></i>
+                        <h3 class="text-muted">No Projects Yet</h3>
+                        <p class="text-muted mb-4">Create your first project to start analyzing audio files</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createProjectModal">
+                            <i class="fas fa-plus me-1"></i>Create Project
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create Project Modal -->
+    <div class="modal fade" id="createProjectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Project</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="createProjectForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="projectName" class="form-label">Project Name</label>
+                            <input type="text" class="form-control" id="projectName" required>
+                            <div class="form-text">Choose a descriptive name for your project</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="projectDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="projectDescription" rows="3"></textarea>
+                            <div class="form-text">Optional description of your project</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="projectType" class="form-label">Project Type</label>
+                            <select class="form-select" id="projectType">
+                                <option value="general">General Analysis</option>
+                                <option value="chord-progression">Chord Progression Study</option>
+                                <option value="key-analysis">Key Analysis</option>
+                                <option value="tempo-analysis">Tempo Analysis</option>
+                                <option value="instrument-separation">Instrument Separation</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Create Project
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer">
+        <!-- Toast notifications will be inserted here -->
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script th:src="@{/js/common.js}"></script>
+    <script>
+        // Project management functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create project form handler
+            const createProjectForm = document.getElementById('createProjectForm');
+            const createProjectModal = new bootstrap.Modal(document.getElementById('createProjectModal'));
+
+            createProjectForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData();
+                formData.append('name', document.getElementById('projectName').value);
+                formData.append('description', document.getElementById('projectDescription').value);
+                formData.append('type', document.getElementById('projectType').value);
+
+                // Show loading state
+                const submitBtn = createProjectForm.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
+                submitBtn.disabled = true;
+
+                // Simulate API call (replace with actual implementation)
+                setTimeout(() => {
+                    createProjectModal.hide();
+                    createProjectForm.reset();
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                    
+                    // Show success toast
+                    showToast('Project created successfully!', 'success');
+                    
+                    // Refresh projects grid (implement actual refresh logic)
+                    // loadProjects();
+                }, 1500);
+            });
+
+            // Load projects on page load
+            // loadProjects();
+        });
+
+        function loadProjects() {
+            // This function will load projects from the backend
+            // For now, we'll show the demo project
+            const projectsGrid = document.getElementById('projectsGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            // Show demo project for now
+            // In a real implementation, you would fetch from /api/projects
+        }
+
+        function deleteProject(projectId) {
+            if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+                // Implement delete functionality
+                console.log('Deleting project:', projectId);
+                showToast('Project deleted successfully!', 'success');
+            }
+        }
+    </script>
+</body>
+</html>

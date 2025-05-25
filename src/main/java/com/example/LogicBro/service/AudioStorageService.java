@@ -13,11 +13,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
+import java.util.List;
 
 @Service
 public class AudioStorageService {
     private static final Logger logger = LoggerFactory.getLogger(AudioStorageService.class);
-    private static final String ALLOWED_FILE_TYPE = "audio/mpeg";
+    private static final List<String> ALLOWED_CONTENT_TYPES = Arrays.asList(
+        "audio/mpeg",
+        "audio/mp3", 
+        "audio/wav",
+        "audio/x-wav",
+        "audio/ogg",
+        "audio/aac",
+        "audio/mp4",
+        "audio/m4a"
+    );
     
     private final AudioUploadProperties properties;
 
@@ -44,8 +55,8 @@ public class AudioStorageService {
             throw new StorageException("Failed to store empty file");
         }
 
-        if (!ALLOWED_FILE_TYPE.equals(file.getContentType())) {
-            throw new StorageException("Only MP3 files are allowed");
+        if (!isValidAudioFile(file)) {
+            throw new StorageException("Invalid audio file type. Allowed types: " + ALLOWED_CONTENT_TYPES);
         }
 
         String originalFilename = file.getOriginalFilename();
@@ -68,11 +79,19 @@ public class AudioStorageService {
             
             Files.copy(file.getInputStream(), destinationPath, StandardCopyOption.REPLACE_EXISTING);
             logger.info("Successfully stored file: {}", filename);
-            return filename;
+            return destinationPath.toString();
             
         } catch (IOException e) {
             throw new StorageException("Failed to store file " + filename, e);
         }
+    }
+    
+    private boolean isValidAudioFile(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null) {
+            return false;
+        }
+        return ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase());
     }
 }
 

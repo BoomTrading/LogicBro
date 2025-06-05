@@ -39,6 +39,16 @@ public class AudioUploadProperties {
      */
     private String analysisPath = "analysis";
 
+    /**
+     * Path to the FFmpeg executable
+     */
+    private String ffmpegPath = "ffmpeg"; // Default assumes ffmpeg is in PATH
+
+    /**
+     * Path to the FFprobe executable
+     */
+    private String ffprobePath = "ffprobe"; // Default assumes ffprobe is in PATH
+
     public String getAudioPath() {
         return audioPath;
     }
@@ -85,5 +95,21 @@ public class AudioUploadProperties {
 
     public void setAnalysisPath(String analysisPath) {
         this.analysisPath = analysisPath;
+    }
+
+    public String getFfmpegPath() {
+        return ffmpegPath;
+    }
+
+    public void setFfmpegPath(String ffmpegPath) {
+        this.ffmpegPath = ffmpegPath;
+    }
+
+    public String getFfprobePath() {
+        return ffprobePath;
+    }
+
+    public void setFfprobePath(String ffprobePath) {
+        this.ffprobePath = ffprobePath;
     }
 }

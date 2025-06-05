@@ -6,6 +6,5 @@ import lombok.Data;
 public class VariationRequestDTO {
     private String[] chordProgression;
     private String scale;
-    private Double amount;
-    private String style;
+    private double amount;
 }

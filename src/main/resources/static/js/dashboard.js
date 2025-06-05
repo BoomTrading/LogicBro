@@ -3,11 +3,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const uploadProgress = document.getElementById('uploadProgress');
-    const progressBar = uploadProgress?.querySelector('.progress-bar');
+    const progressBar = uploadProgress?.querySelector('.progress');
     const uploadStatus = document.getElementById('uploadStatus');
     const analysisResults = document.getElementById('analysisResults');
-    const variationModal = document.getElementById('variationModal');
-    const generateVariationBtn = document.getElementById('generateVariation');
     const playBtn = document.getElementById('playBtn');
     const stopBtn = document.getElementById('stopBtn');
     const chordSequence = document.getElementById('chordSequence');
@@ -22,9 +20,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const chordVisualEl = document.getElementById('chordVisual');
         const melodyVisualEl = document.getElementById('melodyVisual');
         
-        if (keyVisualEl) keyVis = new Visualizations.KeyVisualization(keyVisualEl);
-        if (chordVisualEl) chordVis = new Visualizations.ChordVisualization(chordVisualEl);
-        if (melodyVisualEl) melodyVis = new Visualizations.MelodyVisualization(melodyVisualEl);
+        if (keyVisualEl && window.Visualizations) {
+            keyVis = new window.Visualizations.KeyVisualization(keyVisualEl);
+        }
+        if (chordVisualEl && window.Visualizations) {
+            chordVis = new window.Visualizations.ChordVisualization(chordVisualEl);
+        }
+        if (melodyVisualEl && window.Visualizations) {
+            melodyVis = new window.Visualizations.MelodyVisualization(melodyVisualEl);
+        }
     }
 
     function updateVisualizations(data) {
@@ -45,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function initWaveSurfer() {
         const waveformContainer = document.getElementById('waveform');
-        if (!waveformContainer) return;
+        if (!waveformContainer || typeof WaveSurfer === 'undefined') return;
         
         wavesurfer = WaveSurfer.create({
             container: '#waveform',
@@ -77,290 +81,256 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initialize everything
-    initWaveSurfer();
-    initVisualizations();
+    // File upload and analysis handling
+    function handleFileUpload(file) {
+        if (!file) return;
+        
+        // Check file size
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        if (file.size > maxSize) {
+            showToast('File size exceeds 50MB limit', 'error');
+            return;
+        }
 
-    // Play/Stop controls with enhanced feedback
-    if (playBtn) {
-        playBtn.addEventListener('click', () => {
-            if (!wavesurfer) return;
-            
-            try {
-                if (wavesurfer.isPlaying()) {
-                    wavesurfer.pause();
-                    playBtn.innerHTML = '<i class="mdi mdi-play"></i> Play';
-                    playBtn.classList.remove('btn-playing');
-                } else {
-                    wavesurfer.play();
-                    playBtn.innerHTML = '<i class="mdi mdi-pause"></i> Pause';
-                    playBtn.classList.add('btn-playing');
+        // Check if format needs conversion
+        const supportedFormats = ['wav', 'aiff', 'aif', 'au'];
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        const needsConversion = !supportedFormats.includes(fileExtension);
+        
+        if (needsConversion) {
+            const formatError = document.getElementById('formatError');
+            if (formatError) {
+                formatError.classList.remove('hidden');
+                const errorMessage = document.getElementById('formatErrorMessage');
+                if (errorMessage) {
+                    errorMessage.textContent = 
+                        `Your ${fileExtension.toUpperCase()} file will be converted to WAV format for analysis. This may take a moment.`;
                 }
-            } catch (error) {
-                console.error('Playback error:', error);
-                showToast('Error during playback', 'error');
+            }
+        }
+
+        // Show upload progress
+        if (uploadProgress) uploadProgress.classList.remove('hidden');
+        if (dropZone) dropZone.classList.add('hidden');
+        
+        // Upload file
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        fetch('/api/audio/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            currentFileId = data.fileId;
+            updateUploadStatus('File uploaded successfully. Starting analysis...');
+            return analyzeAudio(data.fileId);
+        })
+        .catch(error => {
+            console.error('Upload error:', error);
+            showToast('Error uploading file: ' + error.message, 'error');
+            resetUploadUI();
+        });
+    }
+
+    function analyzeAudio(fileId) {
+        updateUploadStatus('Analyzing audio... This may take a few minutes.');
+        
+        return fetch(`/api/audio/analyze/${fileId}`, {
+            method: 'GET'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Analysis failed: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            updateUploadStatus('Analysis complete!');
+            setTimeout(() => {
+                if (uploadProgress) uploadProgress.classList.add('hidden');
+                displayAnalysisResults(data);
+            }, 1000);
+        })
+        .catch(error => {
+            console.error('Analysis error:', error);
+            showToast('Error analyzing audio: ' + error.message, 'error');
+            resetUploadUI();
+        });
+    }
+
+    function displayAnalysisResults(data) {
+        // Update key and scale
+        const keyValue = document.getElementById('keyValue');
+        const scaleValue = document.getElementById('scaleValue');
+        
+        if (data.key && keyValue) {
+            keyValue.textContent = data.key;
+        }
+        if (data.scale && scaleValue) {
+            scaleValue.textContent = data.scale;
+        }
+        
+        // Update tempo
+        const tempoValue = document.getElementById('tempoValue');
+        if (data.tempo && data.tempo > 0 && tempoValue) {
+            tempoValue.textContent = Math.round(data.tempo) + ' BPM';
+        }
+        
+        // Update chord progression
+        if (data.chordProgression && data.chordProgression.length > 0) {
+            displayChordProgression(data.chordProgression);
+        }
+        
+        // Update melodic patterns
+        if (data.melodicPatterns && data.melodicPatterns.length > 0) {
+            displayMelodicPatterns(data.melodicPatterns);
+        }
+        
+        // Update visualizations
+        updateVisualizations(data);
+        
+        // Show results
+        if (analysisResults) analysisResults.classList.remove('hidden');
+        
+        showToast('Analysis completed successfully!', 'success');
+    }
+
+    function displayChordProgression(chords) {
+        if (!chordSequence) return;
+        
+        chordSequence.innerHTML = '';
+        
+        chords.forEach((chord, index) => {
+            const chip = document.createElement('div');
+            chip.className = 'chip chord-chip';
+            chip.innerHTML = `<span class="chord-number">${index + 1}</span><span class="chord-name">${chord}</span>`;
+            chordSequence.appendChild(chip);
+        });
+    }
+
+    function displayMelodicPatterns(patterns) {
+        if (!melodyPatterns) return;
+        
+        melodyPatterns.innerHTML = '';
+        
+        patterns.forEach((pattern, index) => {
+            const chip = document.createElement('div');
+            chip.className = 'chip melody-chip';
+            chip.innerHTML = `<span class="pattern-number">${index + 1}</span><span class="pattern-name">${pattern}</span>`;
+            melodyPatterns.appendChild(chip);
+        });
+    }
+
+    function resetUploadUI() {
+        if (uploadProgress) uploadProgress.classList.add('hidden');
+        if (dropZone) dropZone.classList.remove('hidden');
+        
+        const formatError = document.getElementById('formatError');
+        if (formatError) formatError.classList.add('hidden');
+        
+        // Reset progress bar
+        if (progressBar) {
+            progressBar.style.width = '0%';
+        }
+    }
+
+    function updateUploadStatus(message) {
+        if (uploadStatus) {
+            uploadStatus.textContent = message;
+        }
+    }
+
+    function showToast(message, type = 'info') {
+        // Create toast notification
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <i class="mdi ${type === 'error' ? 'mdi-alert-circle' : type === 'success' ? 'mdi-check-circle' : 'mdi-information'}"></i>
+            <span>${message}</span>
+        `;
+        
+        // Add to page
+        document.body.appendChild(toast);
+        
+        // Remove after 5 seconds
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 5000);
+    }
+
+    // File input change handler
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFileUpload(file);
             }
         });
     }
 
-    if (stopBtn) {
-        stopBtn.addEventListener('click', () => {
-            if (!wavesurfer) return;
-            
-            try {
-                wavesurfer.stop();
-                if (playBtn) {
-                    playBtn.innerHTML = '<i class="mdi mdi-play"></i> Play';
-                    playBtn.classList.remove('btn-playing');
-                }
-            } catch (error) {
-                console.error('Stop error:', error);
-            }
-        });
-    }
-
-    // Enhanced drag and drop handling
+    // Drag and drop handlers
     if (dropZone) {
-        dropZone.addEventListener('dragover', (e) => {
+        dropZone.addEventListener('dragover', function(e) {
             e.preventDefault();
-            dropZone.classList.add('upload-area-active');
+            dropZone.classList.add('drag-over');
         });
 
-        dropZone.addEventListener('dragleave', (e) => {
+        dropZone.addEventListener('dragleave', function(e) {
             e.preventDefault();
-            if (!dropZone.contains(e.relatedTarget)) {
-                dropZone.classList.remove('upload-area-active');
-            }
+            dropZone.classList.remove('drag-over');
         });
 
-        dropZone.addEventListener('drop', (e) => {
+        dropZone.addEventListener('drop', function(e) {
             e.preventDefault();
-            dropZone.classList.remove('upload-area-active');
+            dropZone.classList.remove('drag-over');
+            
             const files = e.dataTransfer.files;
             if (files.length > 0) {
                 handleFileUpload(files[0]);
             }
         });
-
-        dropZone.addEventListener('click', () => {
-            if (fileInput) fileInput.click();
-        });
     }
 
-    if (fileInput) {
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileUpload(e.target.files[0]);
-            }
-        });
-    }
-
-    // Enhanced file upload handling with better progress tracking
-    async function handleFileUpload(file) {
-        try {
-            // Validate file using common utility
-            validateAudioFile(file);
+    // Copy progression button handler
+    const copyProgressionBtn = document.getElementById('copyProgressionBtn');
+    if (copyProgressionBtn) {
+        copyProgressionBtn.addEventListener('click', function() {
+            const chordChips = document.querySelectorAll('#chordSequence .chord-chip .chord-name');
+            const progression = Array.from(chordChips).map(chip => chip.textContent).join(' - ');
             
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            // Show upload progress
-            if (uploadProgress) {
-                uploadProgress.style.display = 'block';
-                uploadProgress.classList.add('active');
-            }
-            
-            // Update UI to show file info
-            updateUploadStatus(`Uploading ${file.name} (${formatFileSize(file.size)})...`);
-
-            const response = await fetch('/api/audio/upload', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error(`Upload failed: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            currentFileId = data.fileId;
-            
-            updateUploadStatus('Processing audio...');
-            
-            // Load the audio file into WaveSurfer
-            if (wavesurfer) {
-                const audioUrl = URL.createObjectURL(file);
-                wavesurfer.load(audioUrl);
-            }
-            
-            await processAudio(data.fileId);
-            
-        } catch (error) {
-            console.error('Upload error:', error);
-            showToast(error.message || 'Error uploading file', 'error');
-            hideUploadProgress();
-        }
-    }
-
-    function updateUploadStatus(message, progress = null) {
-        if (uploadStatus) {
-            uploadStatus.textContent = message;
-        }
-        if (progress !== null && progressBar) {
-            progressBar.style.width = progress + '%';
-            progressBar.setAttribute('aria-valuenow', progress);
-        }
-    }
-
-    function hideUploadProgress() {
-        if (uploadProgress) {
-            uploadProgress.style.display = 'none';
-            uploadProgress.classList.remove('active');
-        }
-    }
-
-    // Enhanced audio processing and analysis
-    async function processAudio(fileId) {
-        try {
-            updateUploadStatus('Analyzing audio patterns...');
-            
-            const response = await fetch(`/api/audio/analyze/${fileId}`);
-            if (!response.ok) {
-                throw new Error(`Analysis failed: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            
-            // Update visualizations with new data
-            updateVisualizations(data);
-            
-            // Show analysis results with animation
-            hideUploadProgress();
-            if (analysisResults) {
-                analysisResults.style.display = 'grid';
-                analysisResults.classList.add('fade-in');
-            }
-            
-            // Update UI elements with analysis data
-            updateAnalysisResults(data);
-            
-            showToast('Audio analysis complete!', 'success');
-            
-        } catch (error) {
-            console.error('Analysis error:', error);
-            showToast(error.message || 'Error analyzing audio', 'error');
-            hideUploadProgress();
-        }
-    }
-
-    function updateAnalysisResults(data) {
-        // Update key and scale info
-        const keyChip = document.getElementById('keyChip');
-        const scaleChip = document.getElementById('scaleChip');
-        
-        if (keyChip && data.key) {
-            keyChip.textContent = `Key: ${data.key}`;
-        }
-        if (scaleChip && data.scale) {
-            scaleChip.textContent = `Scale: ${data.scale}`;
-        }
-        
-        // Update chord sequence
-        if (chordSequence && data.chordProgression) {
-            chordSequence.innerHTML = data.chordProgression
-                .map(chord => `<div class="chip chip-primary">${chord}</div>`)
-                .join('');
-        }
-        
-        // Update melody patterns
-        if (melodyPatterns && data.melodicPatterns) {
-            melodyPatterns.innerHTML = data.melodicPatterns
-                .map(pattern => `<div class="chip chip-secondary">${pattern}</div>`)
-                .join('');
-        }
-        
-        // Update additional analysis info
-        updateAdditionalInfo(data);
-    }
-
-    function updateAdditionalInfo(data) {
-        // Update tempo if available
-        const tempoEl = document.getElementById('tempo');
-        if (tempoEl && data.tempo) {
-            tempoEl.textContent = `${data.tempo} BPM`;
-        }
-        
-        // Update time signature if available
-        const timeSigEl = document.getElementById('timeSignature');
-        if (timeSigEl && data.timeSignature) {
-            timeSigEl.textContent = data.timeSignature;
-        }
-        
-        // Update confidence scores with progress bars
-        updateConfidenceScores(data);
-    }
-
-    function updateConfidenceScores(data) {
-        const scores = [
-            { id: 'keyConfidence', value: data.keyConfidence },
-            { id: 'chordConfidence', value: data.chordConfidence },
-            { id: 'melodyConfidence', value: data.melodyConfidence }
-        ];
-        
-        scores.forEach(score => {
-            const element = document.getElementById(score.id);
-            if (element && score.value !== undefined) {
-                const percentage = Math.round(score.value * 100);
-                element.style.width = percentage + '%';
-                element.setAttribute('aria-valuenow', percentage);
-                element.textContent = percentage + '%';
-            }
-        });
-    }
-
-    // Generate variation functionality
-    if (generateVariationBtn) {
-        generateVariationBtn.addEventListener('click', async () => {
-            if (!currentFileId) {
-                showToast('Please upload and analyze an audio file first', 'warning');
-                return;
-            }
-            
-            const variationAmount = document.getElementById('variationAmount')?.value || 50;
-            const variationStyle = document.getElementById('variationStyle')?.value || 'similar';
-            
-            try {
-                showLoading(generateVariationBtn.parentElement, 'Generating variation...');
-                
-                const response = await fetch('/api/audio/generate-variation', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        fileId: currentFileId,
-                        amount: parseInt(variationAmount),
-                        style: variationStyle
-                    })
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(progression).then(() => {
+                    showToast('Chord progression copied to clipboard!', 'success');
+                }).catch(() => {
+                    showToast('Failed to copy to clipboard', 'error');
                 });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to generate variation');
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = progression;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('Chord progression copied to clipboard!', 'success');
+                } catch (err) {
+                    showToast('Failed to copy to clipboard', 'error');
                 }
-                
-                const result = await response.json();
-                showToast('Variation generated successfully!', 'success');
-                closeModal('variationModal');
-                
-                // Optionally reload or update the interface
-                // location.reload();
-                
-            } catch (error) {
-                console.error('Variation generation error:', error);
-                showToast(error.message || 'Error generating variation', 'error');
-            } finally {
-                hideLoading(generateVariationBtn.parentElement);
+                document.body.removeChild(textArea);
             }
         });
     }
+
+    // Initialize everything
+    initWaveSurfer();
+    initVisualizations();
 });

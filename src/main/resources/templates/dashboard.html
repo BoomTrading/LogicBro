@@ -18,43 +18,90 @@
                 <i class="mdi mdi-music-note"></i>
                 LogicBro
             </a>
-            <div class="nav-links">
-                <a href="/dashboard" class="nav-link active">
-                    <i class="mdi mdi-view-dashboard"></i>
-                    Dashboard
-                </a>
-                <a href="/projects" class="nav-link">
-                    <i class="mdi mdi-folder-music"></i>
-                    Projects
-                </a>
-                <a href="/profile" class="nav-link">
-                    <i class="mdi mdi-account"></i>
-                    Profile
-                </a>
-                <form th:action="@{/logout}" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-outline btn-sm">
-                        <i class="mdi mdi-logout"></i>
-                        Logout
-                    </button>
-                </form>
-            </div>
+            <ul class="nav-links">
+                <li><a href="/dashboard" class="nav-link">Dashboard</a></li>
+                <li><a href="/projects" class="nav-link">Projects</a></li>
+                <li><a href="/profile" class="nav-link">Profile</a></li>
+                <li>
+                    <form th:action="@{/logout}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-secondary btn-small">
+                            Logout
+                        </button>
+                    </form>
+                </li>
+            </ul>
         </div>
     </nav>
 
     <div class="container">
         <!-- Welcome Section -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h1 class="card-title">
-                    <i class="mdi mdi-waveform"></i>
-                    Welcome back, <span th:text="${username}">User</span>!
-                </h1>
-                <p class="card-subtitle">Start analyzing your audio files or continue working on your projects</p>
+        <div class="main-content">
+            <div class="card">
+                <div class="card-header">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="card-title">
+                                Welcome back, <span th:text="${username}">User</span>!
+                            </h1>
+                            <p class="card-subtitle">Start analyzing your audio files or continue working on your projects</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="metric-value">
+                                <span th:text="${totalProjects ?: 0}">0</span>
+                            </div>
+                            <div class="metric-label">Projects</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <!-- Quick Actions -->
+        <div class="analysis-grid mb-6">
+            <div class="analysis-card">
+                <div class="analysis-header">
+                    <div class="analysis-icon">
+                        <i class="mdi mdi-cloud-upload"></i>
+                    </div>
+                    <div class="analysis-title">Upload Audio</div>
+                </div>
+                <p class="text-muted mb-4">Upload MP3 files for professional analysis</p>
+                <a href="/upload" class="btn btn-primary">
+                    <i class="mdi mdi-upload"></i>
+                    Upload Now
+                </a>
+            </div>
+            
+            <div class="analysis-card">
+                <div class="analysis-header">
+                    <div class="analysis-icon">
+                        <i class="mdi mdi-folder-music"></i>
+                    </div>
+                    <div class="analysis-title">Browse Projects</div>
+                </div>
+                <p class="text-muted mb-4">Access your saved audio projects</p>
+                <a href="/projects" class="btn btn-secondary">
+                    <i class="mdi mdi-folder-open"></i>
+                    View Projects
+                </a>
+            </div>
+            
+            <div class="analysis-card">
+                <div class="analysis-header">
+                    <div class="analysis-icon">
+                        <i class="mdi mdi-chart-line"></i>
+                    </div>
+                    <div class="analysis-title">Recent Analysis</div>
+                </div>
+                <p class="text-muted mb-4">View your latest analysis results</p>
+                <button class="btn btn-outline" onclick="loadRecentAnalysis()">
+                    <i class="mdi mdi-history"></i>
+                    View Recent
+                </button>
             </div>
         </div>
 
         <!-- Audio Analysis Section -->
-        <div class="card mb-5">
+        <div class="card mb-6">
             <div class="card-header">
                 <h2 class="card-title">
                     <i class="mdi mdi-music-circle"></i>
@@ -63,49 +110,84 @@
                 <p class="card-subtitle">Upload and analyze your audio files with advanced AI-powered tools</p>
             </div>
             
-            <div class="upload-area" id="dropZone">
-                <i class="mdi mdi-cloud-upload upload-icon"></i>
-                <h3>Drag and drop your audio file here</h3>
-                <p class="text-secondary">or click to browse your files</p>
-                <input type="file" id="fileInput" accept="audio/*" style="display: none;">
-                <button class="btn btn-primary btn-lg" onclick="document.getElementById('fileInput').click()">
-                    <i class="mdi mdi-file-music"></i>
-                    Select Audio File
-                </button>
-                <div class="mt-3">
-                    <small class="text-muted">
-                        <i class="mdi mdi-information"></i>
-                        Supported formats: MP3, WAV, OGG, AAC, M4A (Max size: 50MB)
-                    </small>
+            <div class="card-body">
+                <div class="upload-zone" id="dropZone">
+                    <div class="upload-icon">
+                        <i class="mdi mdi-cloud-upload"></i>
+                    </div>
+                    <div class="upload-text">Drag and drop your audio file here</div>
+                    <div class="upload-subtext">or click to browse your files</div>
+                    <input type="file" id="fileInput" accept="audio/*" style="display: none;">
+                    <div style="margin-top: var(--space-4);">
+                        <button class="btn btn-primary btn-lg" onclick="document.getElementById('fileInput').click()">
+                            <i class="mdi mdi-file-music"></i>
+                            Select Audio File
+                        </button>
+                    </div>
+                    <div class="text-center" style="margin-top: var(--space-4);">
+                        <small class="text-muted">
+                            <i class="mdi mdi-information"></i>
+                            Supported formats: MP3, WAV, OGG, AAC, M4A, AIFF, FLAC, WMA (Max size: 50MB)
+                            <br><small class="text-info">Unsupported formats will be automatically converted using FFmpeg</small>
+                        </small>
+                    </div>
                 </div>
-            </div>
-            
-            <div id="uploadProgress" class="hidden mt-4">
-                <div class="progress-bar">
-                    <div class="progress" style="width: 0%"></div>
+                
+                <div id="uploadProgress" class="hidden" style="margin-top: var(--space-6);">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="flex items-center gap-4">
+                                <div class="spinner"></div>
+                                <div>
+                                    <div class="font-semibold" id="uploadStatus">Uploading...</div>
+                                    <div class="text-sm text-muted">This may take a few moments</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <p id="uploadStatus" class="text-center mt-2">Uploading...</p>
+
+                <!-- Format Error Alert -->
+                <div id="formatError" class="toast error hidden" style="position: relative; margin-top: var(--space-4);">
+                    <div class="toast-icon">
+                        <i class="mdi mdi-alert-circle"></i>
+                    </div>
+                    <div class="toast-content">
+                        <div class="toast-title">Format Conversion Required</div>
+                        <div class="toast-message" id="formatErrorMessage">Your audio file will be converted to WAV format for analysis. This may take a moment.</div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Analysis Results Section -->
         <div id="analysisResults" class="hidden">
-            <div class="card-header mb-4">
-                <h2 class="card-title">
-                    <i class="mdi mdi-chart-line"></i>
-                    Analysis Results
-                </h2>
+            <div class="card mb-6">
+                <div class="card-header">
+                    <div class="flex items-center justify-between">
+                        <h2 class="card-title">
+                            <i class="mdi mdi-chart-line"></i>
+                            Analysis Results
+                        </h2>
+                        <button class="btn btn-outline btn-sm" id="saveAnalysisBtn">
+                            <i class="mdi mdi-content-save"></i>
+                            Save Analysis
+                        </button>
+                    </div>
+                </div>
             </div>
             
-            <div class="analysis-results">
+            <div class="analysis-grid">
                 <!-- Waveform Card -->
-                <div class="result-card">
-                    <h3>
-                        <i class="mdi mdi-waveform"></i>
-                        Waveform Visualization
-                    </h3>
-                    <div class="waveform" id="waveform"></div>
-                    <div class="controls">
+                <div class="analysis-card" style="grid-column: 1 / -1;">
+                    <div class="analysis-header">
+                        <div class="analysis-icon">
+                            <i class="mdi mdi-waveform"></i>
+                        </div>
+                        <div class="analysis-title">Waveform Visualization</div>
+                    </div>
+                    <div class="chart-container" id="waveform" style="height: 200px; margin-bottom: var(--space-4);"></div>
+                    <div class="flex gap-2">
                         <button class="btn btn-primary" id="playBtn" disabled>
                             <i class="mdi mdi-play"></i>
                             Play
@@ -122,34 +204,58 @@
                 </div>
 
                 <!-- Key & Scale Card -->
-                <div class="result-card">
-                    <h3>
-                        <i class="mdi mdi-piano"></i>
-                        Key & Scale Analysis
-                    </h3>
-                    <div class="visualization" id="keyVisual"></div>
-                    <div class="flex gap-2 mt-3">
-                        <div class="chip" id="keyChip">Key: --</div>
-                        <div class="chip" id="scaleChip">Scale: --</div>
+                <div class="analysis-card">
+                    <div class="analysis-header">
+                        <div class="analysis-icon">
+                            <i class="mdi mdi-piano"></i>
+                        </div>
+                        <div class="analysis-title">Key & Scale Analysis</div>
+                    </div>
+                    <div class="chart-container" id="keyVisual" style="height: 150px; margin-bottom: var(--space-4);"></div>
+                    <div class="flex gap-2">
+                        <div class="chip" id="keyChip">Key: <span id="keyValue">--</span></div>
+                        <div class="chip" id="scaleChip">Scale: <span id="scaleValue">--</span></div>
+                    </div>
+                </div>
+
+                <!-- Tempo & Timing Card -->
+                <div class="analysis-card">
+                    <div class="analysis-header">
+                        <div class="analysis-icon">
+                            <i class="mdi mdi-metronome"></i>
+                        </div>
+                        <div class="analysis-title">Tempo & Timing</div>
+                    </div>
+                    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-4);">
+                        <div class="text-center">
+                            <div class="analysis-value" id="tempoValue">-- BPM</div>
+                            <div class="analysis-label">Tempo</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="analysis-value" id="timeSignature">4/4</div>
+                            <div class="analysis-label">Time Signature</div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Chord Progression Card -->
-                <div class="result-card">
-                    <h3>
-                        <i class="mdi mdi-guitar-acoustic"></i>
-                        Chord Progression
-                    </h3>
-                    <div class="visualization" id="chordVisual"></div>
-                    <div class="chip-sequence" id="chordSequence">
+                <div class="analysis-card" style="grid-column: 1 / -1;">
+                    <div class="analysis-header">
+                        <div class="analysis-icon">
+                            <i class="mdi mdi-guitar-acoustic"></i>
+                        </div>
+                        <div class="analysis-title">Chord Progression</div>
+                    </div>
+                    <div class="chart-container" id="chordVisual" style="height: 150px; margin-bottom: var(--space-4);"></div>
+                    <div class="chip-sequence" id="chordSequence" style="margin-bottom: var(--space-4);">
                         <!-- Chord chips will be populated here -->
                     </div>
-                    <div class="controls mt-4">
+                    <div class="flex gap-2">
                         <button class="btn btn-secondary" id="generateVariation">
                             <i class="mdi mdi-auto-fix"></i>
                             Generate Variation
                         </button>
-                        <button class="btn btn-outline">
+                        <button class="btn btn-outline" id="copyProgressionBtn">
                             <i class="mdi mdi-content-copy"></i>
                             Copy Progression
                         </button>
@@ -157,42 +263,28 @@
                 </div>
 
                 <!-- Melodic Patterns Card -->
-                <div class="result-card">
-                    <h3>
-                        <i class="mdi mdi-music-note-eighth"></i>
-                        Melodic Patterns
-                    </h3>
-                    <div class="visualization" id="melodyVisual"></div>
+                <div class="analysis-card">
+                    <div class="analysis-header">
+                        <div class="analysis-icon">
+                            <i class="mdi mdi-music-note-eighth"></i>
+                        </div>
+                        <div class="analysis-title">Melodic Patterns</div>
+                    </div>
+                    <div class="chart-container" id="melodyVisual" style="height: 150px; margin-bottom: var(--space-4);"></div>
                     <div class="chip-sequence" id="melodyPatterns">
                         <!-- Melody pattern chips will be populated here -->
                     </div>
                 </div>
 
-                <!-- Tempo & Timing Card -->
-                <div class="result-card">
-                    <h3>
-                        <i class="mdi mdi-metronome"></i>
-                        Tempo & Timing
-                    </h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-primary" id="tempoValue">-- BPM</div>
-                            <div class="text-sm text-secondary">Tempo</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-primary" id="timeSignature">--/--</div>
-                            <div class="text-sm text-secondary">Time Signature</div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Audio Separation Card -->
-                <div class="result-card">
-                    <h3>
-                        <i class="mdi mdi-track-light"></i>
-                        Track Separation
-                    </h3>
-                    <div class="text-center mb-3">
+                <div class="analysis-card">
+                    <div class="analysis-header">
+                        <div class="analysis-icon">
+                            <i class="mdi mdi-track-light"></i>
+                        </div>
+                        <div class="analysis-title">Track Separation</div>
+                    </div>
+                    <div class="text-center" style="margin-bottom: var(--space-4);">
                         <button class="btn btn-primary" id="separateTracksBtn">
                             <i class="mdi mdi-call-split"></i>
                             Separate Audio Tracks

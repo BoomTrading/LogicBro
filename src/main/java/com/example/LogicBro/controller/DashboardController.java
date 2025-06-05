@@ -5,6 +5,8 @@ import com.example.LogicBro.dto.VariationRequestDTO;
 import com.example.LogicBro.service.AudioAnalysisService;
 import com.example.LogicBro.service.ProjectService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,6 +19,8 @@ import java.util.concurrent.CompletableFuture;
 @Controller
 @RequiredArgsConstructor
 public class DashboardController {
+
+    private static final Logger logger = LoggerFactory.getLogger(DashboardController.class);
 
     private final AudioAnalysisService audioAnalysisService;
     private final ProjectService projectService;
@@ -35,14 +39,20 @@ public class DashboardController {
             String fileId = audioAnalysisService.storeAudioFile(file, principal.getName());
             return ResponseEntity.ok().body(new UploadResponse(fileId));
         } catch (Exception e) {
+            logger.error("Error uploading audio file", e);
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
 
-    @GetMapping("/api/audio/analyze/{fileId}")
+    @RequestMapping(value = "/api/audio/analyze/{fileId}", method = {RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
-    public CompletableFuture<AudioAnalysisDTO> analyzeAudio(@PathVariable String fileId) {
-        return audioAnalysisService.analyzeAudioFile(fileId);
+    public CompletableFuture<ResponseEntity<AudioAnalysisDTO>> analyzeAudio(@PathVariable String fileId) {
+        return audioAnalysisService.analyzeAudioFile(fileId)
+            .thenApply(analysis -> ResponseEntity.ok(analysis))
+            .exceptionally(throwable -> {
+                logger.error("Analysis failed for file ID: " + fileId, throwable);
+                return ResponseEntity.status(500).body(null);
+            });
     }
 
     @PostMapping("/api/audio/generate-variation")
@@ -62,6 +72,7 @@ public class DashboardController {
             projectService.deleteProject(projectId, principal.getName());
             return ResponseEntity.ok().build();
         } catch (Exception e) {
+            logger.error("Error deleting project", e);
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }

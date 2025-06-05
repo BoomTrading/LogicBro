@@ -6,4 +6,6 @@ import java.util.Optional;
 
 public interface AudioFileRepository extends JpaRepository<AudioFile, Long> {
     Optional<AudioFile> findByFileId(String fileId);
+    Optional<AudioFile> findByFileName(String fileName);
+    Optional<AudioFile> findByOriginalFileName(String originalFileName);
 }

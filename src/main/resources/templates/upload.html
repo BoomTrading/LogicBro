@@ -2,28 +2,143 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>LogicBro - Upload</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogicBro - Upload Audio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <div class="sidebar">
-        <h2>LogicBro</h2>
-        <nav>
-            <a th:href="@{/dashboard}">Dashboard</a>
-            <a th:href="@{/upload}">Upload Audio</a>
-            <a th:href="@{/logout}">Logout</a>
-        </nav>
-    </div>
-    <div class="main-content">
-        <div class="upload-container">
-            <h2>Upload MP3 File</h2>
-            <form th:action="@{/upload}" method="post" enctype="multipart/form-data">
-                <input type="file" name="file" accept=".mp3" required>
-                <button type="submit" class="upload-btn">Upload</button>
+    <!-- Apple-Style Navigation -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/dashboard" class="logo">
+                <i class="mdi mdi-music-note"></i>
+                LogicBro
+            </a>
+            <ul class="nav-links">
+                <li><a href="/dashboard" class="nav-link">Dashboard</a></li>
+                <li><a href="/upload" class="nav-link">Upload Audio</a></li>
+                <li>
+                    <form th:action="@{/logout}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-secondary btn-small">
+                            Logout
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="main-content">
+            <div class="text-center mb-6">
+                <h1>Upload Your Audio</h1>
+                <p class="text-secondary">
+                    Upload an MP3 file for professional audio analysis including key detection, chord progressions, and tempo analysis.
+                </p>
+            </div>
+
+            <!-- Upload Form -->
+            <form th:action="@{/upload}" method="post" enctype="multipart/form-data" id="uploadForm">
+                <div class="upload-area" id="uploadZone">
+                    <div class="upload-icon">
+                        <i class="mdi mdi-cloud-upload"></i>
+                    </div>
+                    <div class="upload-text">Drag and drop your MP3 file here</div>
+                    <div class="upload-subtext">or click to browse files</div>
+                    <input type="file" name="file" accept=".mp3" required id="fileInput" style="display: none;">
+                </div>
+                
+                <div class="text-center" style="margin-top: var(--space-24);">
+                    <button type="submit" class="btn btn-primary btn-large" id="uploadBtn">
+                        Upload & Analyze
+                    </button>
+                </div>
             </form>
-            <div th:if="${message}" class="message" th:text="${message}"></div>
-            <div th:if="${error}" class="error" th:text="${error}"></div>
+
+            <!-- Messages -->
+            <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+            <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+            <!-- Upload Progress (Hidden by default) -->
+            <div id="uploadProgress" style="display: none; margin-top: var(--space-24);">
+                <div class="card">
+                    <div class="card-content">
+                        <div class="flex items-center gap-4">
+                            <div class="spinner"></div>
+                            <div>
+                                <div class="font-semibold">Uploading and analyzing your audio...</div>
+                                <div class="text-sm text-muted">This may take a few moments</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <script>
+        // Enhanced file upload functionality
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadProgress = document.getElementById('uploadProgress');
+
+        // Click to upload
+        uploadZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Drag and drop functionality
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                updateUploadZone(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                updateUploadZone(e.target.files[0]);
+            }
+        });
+
+        // Update upload zone with file info
+        function updateUploadZone(file) {
+            uploadZone.innerHTML = `
+                <div class="upload-icon">
+                    <i class="mdi mdi-music"></i>
+                </div>
+                <div class="upload-text">${file.name}</div>
+                <div class="upload-subtext">${(file.size / (1024 * 1024)).toFixed(2)} MB</div>
+            `;
+        }
+
+        // Form submission with progress
+        uploadForm.addEventListener('submit', (e) => {
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="mdi mdi-loading mdi-spin"></i> Uploading...';
+            uploadProgress.style.display = 'block';
+        });
+    </script>
 </body>
 </html>
